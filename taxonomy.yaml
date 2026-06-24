@@ -1,0 +1,137 @@
+# ============================================================
+#  taxonomy.yaml
+#  Literature & Patent Mining Pipeline — Search Taxonomy
+#
+#  HOW TO USE:
+#  - Add or remove keywords under any section freely
+#  - The pipeline reads this file every Monday automatically
+#  - More specific keywords = fewer but more relevant results
+#  - Broader keywords = more results but more noise
+#
+#  This example uses AI / ML / DL topics.
+#  Replace the topics below with whatever taxonomy suits your domain.
+# ============================================================
+
+
+# ── Topics to search in paper titles and abstracts ──────────
+topics:
+
+  ai_fundamentals:
+    - artificial intelligence
+    - machine learning
+    - deep learning
+    - neural network
+    - foundation model
+    - large language model
+    - LLM
+    - transformer architecture
+
+  # nlp_and_llms:
+  #   - natural language processing
+  #   - NLP
+  #   - text generation
+  #   - language model
+  #   - BERT
+  #   - GPT
+  #   - instruction tuning
+  #   - fine tuning
+  #   - retrieval augmented generation
+  #   - RAG
+  #   - prompt engineering
+
+  # computer_vision:
+  #   - computer vision
+  #   - image recognition
+  #   - object detection
+  #   - image segmentation
+  #   - vision transformer
+  #   - ViT
+  #   - convolutional neural network
+  #   - CNN
+  #   - diffusion model
+
+  # reinforcement_learning:
+  #   - reinforcement learning
+  #   - RL
+  #   - reward model
+  #   - RLHF
+  #   - policy optimization
+  #   - multi agent
+
+  # ai_safety_and_alignment:
+  #   - AI safety
+  #   - AI alignment
+  #   - hallucination
+  #   - bias in AI
+  #   - explainability
+  #   - interpretability
+  #   - responsible AI
+
+  # ai_in_industry:
+  #   - AI in manufacturing
+  #   - AI in materials science
+  #   - AI in healthcare
+  #   - AI for drug discovery
+  #   - industrial AI
+  #   - AI automation
+  #   - edge AI
+
+
+# ── Minimum keyword matches to pass the relevance filter ────
+#  A paper must match at least this many keywords to be included
+#  Increase to 2 for stricter filtering, keep at 1 for broader
+relevance_threshold: 1
+
+
+# ── Sources to search ────────────────────────────────────────
+sources:
+  semantic_scholar: True    # 200M+ academic papers — primary source
+  arxiv: False
+  openalex: true               # Preprints — catches very latest research
+
+
+# ── How many results to fetch per keyword group per source ───
+results_per_query: 20
+
+
+# ── How many days back to look ───────────────────────────────
+#  7 = last 7 days (weekly run)
+#  Change to 14 if running fortnightly
+lookback_days: 20
+
+
+# ── Email delivery settings ───────────────────────────────────
+email:
+  subject_prefix: "[Research Digest]"
+  max_papers_in_digest: 30     # Cap so email does not become overwhelming
+  show_full_abstract: false    # true = show full abstract, false = show LLM summary only
+
+
+# ── LLM settings ─────────────────────────────────────────────
+
+llm:
+  provider: "groq"              # primary — try this first
+  fallback_provider: "google"   # secondary — use if primary fails
+  model: "llama-3.3-70b-versatile"
+  fallback_model: "gemini-2.0-flash"
+  max_tokens: 500
+  temperature: 0.1
+
+# llm:
+#   provider: "google"              # primary — try this first
+#   fallback_provider: "groq"   # secondary — use if primary fails
+#   model: "gemini-2.0-flash"
+#   fallback_model: "llama-3.3-70b-versatile"
+#   max_tokens: 500
+#   temperature: 0.1
+
+# ── Adding your own topics ───────────────────────────────────
+# Replace the topics above with whatever taxonomy suits your work.
+# Each top-level key under `topics:` is a group; list the search
+# keywords or phrases beneath it. Example shape:
+#
+# topics:
+#   my_topic_group:
+#     - keyword one
+#     - keyword two
+#     - "a multi word phrase"

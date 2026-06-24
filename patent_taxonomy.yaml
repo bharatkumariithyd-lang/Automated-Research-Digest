@@ -1,0 +1,122 @@
+# ============================================================
+#  patent_taxonomy.yaml
+#  Patent Monitoring Configuration
+#
+#  WHO EDITS THIS FILE:
+#  IP team / Legal team / R&D strategy team
+#  NOT the same person who edits taxonomy.yaml
+#
+#  HOW IT WORKS:
+#  The pipeline reads this file every Monday automatically.
+#  Add a competitor → monitored from next Monday.
+#  Add a CPC code  → that technology area monitored.
+#  No code changes needed — just edit and save.
+#
+#  This example monitors AI/ML companies and CPC codes.
+#  Replace the assignees and CPC codes below with whatever
+#  companies and technology areas you want to monitor.
+# ============================================================
+
+
+# ── Search settings ──────────────────────────────────────────
+enabled: False                   # Set to True to enable patent monitoring
+lookback_days: 60           # How many days back to search
+results_per_query: 25       # Max patents per API call
+max_patents_in_digest: 20   # Cap so email does not get too long
+
+
+# ── Competitor companies to monitor ──────────────────────────
+# The pipeline finds ALL patents filed by these companies
+# within the lookback period — regardless of topic.
+# Add any company whose patent activity you want to watch.
+
+competitor_assignees:
+  - Google
+  - Microsoft
+  - Meta
+  - NVIDIA
+  - OpenAI
+  - Amazon
+  - IBM
+  - Anthropic
+  - Apple
+  - DeepMind
+  - Adobe
+  - Baidu
+
+
+# ── CPC technology classification codes ──────────────────────
+# Catches patents in these technology areas from ANY company —
+# including smaller players and universities not listed above.
+# Full CPC code list: cooperativepatentclassification.org
+
+cpc_codes:
+  - G06N    # neural networks · machine learning · AI models
+  - G06F    # digital data processing · computing architecture
+  # - G06T    # image data processing · computer vision
+  # - G06V    # image and video recognition · understanding
+  # - G10L    # speech processing · natural language · audio AI
+
+
+# ── Keywords for additional filtering ────────────────────────
+# After the API returns results, these keywords are used to
+# score each patent for relevance — same logic as paper filter.
+# A patent matching 1 or more keywords passes to Gemma.
+
+keywords:
+  ai_models:
+    - large language model
+    - transformer
+    - diffusion model
+    - foundation model
+    - generative AI
+    - neural network
+
+  ml_techniques:
+    - reinforcement learning
+    - fine tuning
+    - instruction tuning
+    - prompt engineering
+    - retrieval augmented generation
+
+  applications:
+    - computer vision
+    - speech recognition
+    - natural language processing
+    - autonomous driving
+    - AI inference
+
+
+# ── Relevance threshold ───────────────────────────────────────
+# Minimum keyword matches for a patent to pass to Gemma.
+# 0 = all patents from assignees/CPC codes pass through
+# 1 = at least one keyword must also match (recommended)
+relevance_threshold: 1
+
+
+# ── Email section settings ────────────────────────────────────
+email:
+  section_title: "Patent Alerts"
+  show_cpc_code: true
+  show_assignee: true
+  show_grant_date: true
+
+
+# ============================================================
+#  Customising for your own domain
+#  Replace the assignees, CPC codes, and keywords above with
+#  whatever you want to monitor. The structure stays the same:
+# ============================================================
+
+# competitor_assignees:
+#   - Company One
+#   - Company Two
+#
+# cpc_codes:
+#   - <CPC code>      # one or more CPC classification codes
+#   - <CPC code>      #   for the technology areas you track
+#
+# keywords:
+#   my_keyword_group:
+#     - keyword one
+#     - keyword two
