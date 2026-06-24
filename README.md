@@ -81,6 +81,26 @@ RECIPIENT_EMAILS=a@x.com,b@y.com   # comma-separated recipients
 > OpenAlex needs no key — it uses the polite pool with `SENDER_EMAIL` in the
 > request header.
 
+### Email provider — Outlook / Microsoft 365 or Gmail
+
+The pipeline **auto-detects the SMTP settings from your `SENDER_EMAIL`**, so
+switching providers needs **no code changes** — only different env vars:
+
+| Provider | `SENDER_EMAIL` looks like | SMTP used (automatic) | `SENDER_PASSWORD` to use |
+|---|---|---|---|
+| Outlook / Microsoft 365 *(default)* | `you@company.com`, `you@outlook.com` | `smtp.office365.com:587` (STARTTLS) | account password (App Password if MFA is enforced) |
+| Gmail | `you@gmail.com` | `smtp.gmail.com:465` (SSL) | **Gmail App Password** (16 characters) |
+
+**To use Gmail instead of Outlook:**
+
+1. Put a Gmail address in `SENDER_EMAIL`.
+2. Enable **2-Step Verification** on that Google account (required for the next step).
+3. Create an **App Password**: Google Account → *Security* → *2-Step Verification* → *App passwords* → generate one for "Mail".
+4. Put that 16-character App Password in `SENDER_PASSWORD` — **not** your normal Gmail password (Gmail rejects the real password for SMTP).
+
+The pipeline sees the `gmail.com` address and switches to Gmail's SMTP server
+automatically; nothing in the code changes.
+
 ---
 
 ## Configuration
