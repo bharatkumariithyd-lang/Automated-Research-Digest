@@ -1078,7 +1078,7 @@ def build_html_email(papers: list[dict], taxonomy: dict, patents: list[dict] = N
     </div>
     <div style="background:#3C3489;padding:10px 28px;margin-bottom:20px;">
       <p style="font-size:12px;color:#CCCAF8;margin:0;">
-        Monitored assignees and CPC codes · Summarised by Gemma AI · USPTO source
+        Monitored assignees and CPC codes · Summarised by Groq AI ·
       </p>
     </div>
     {patent_cards}
@@ -1106,15 +1106,6 @@ def build_html_email(papers: list[dict], taxonomy: dict, patents: list[dict] = N
       </h1>
       <p style="font-size:13px;color:#aaa;margin:0;">
         {today} &nbsp;·&nbsp; Topics: {topics_shown}
-      </p>
-    </div>
-    
-    <!-- Info bar -->
-    <div style="background:#27500A;padding:10px 28px;margin-bottom:20px;
-                border-radius:0 0 0 0;">
-      <p style="font-size:12px;color:#b8dfa0;margin:0;">
-        Automatically collected from Semantic Scholar and arXiv · 
-        Summarised by Gemma AI · Sorted by importance
       </p>
     </div>
     
