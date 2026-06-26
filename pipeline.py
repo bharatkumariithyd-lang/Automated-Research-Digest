@@ -1076,11 +1076,6 @@ def build_html_email(papers: list[dict], taxonomy: dict, patents: list[dict] = N
         {len(patents)} New Patents This Week
       </h2>
     </div>
-    <div style="background:#3C3489;padding:10px 28px;margin-bottom:20px;">
-      <p style="font-size:12px;color:#CCCAF8;margin:0;">
-        Monitored assignees and CPC codes · Summarised by Groq AI ·
-      </p>
-    </div>
     {patent_cards}
         """
 
