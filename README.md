@@ -113,8 +113,17 @@ run picks up the changes.
 - **`patent_taxonomy.yaml`** — set `enabled: true`, then list the company
   assignees and CPC codes to monitor. Patent search is **disabled by default**.
 
-Both files ship with a generic AI/ML example taxonomy. Replace the topics,
-assignees, and CPC codes with whatever fits your domain.
+The repo ships **`taxonomy.example.yaml`** and **`patent_taxonomy.example.yaml`**
+as generic templates. Copy them to **`taxonomy.yaml`** and **`patent_taxonomy.yaml`**
+— both are **gitignored**, so your real search config stays private and is never
+pushed (the same treatment as `.env`):
+
+```bash
+cp taxonomy.example.yaml taxonomy.yaml
+cp patent_taxonomy.example.yaml patent_taxonomy.yaml
+```
+
+Then edit those two files with your own topics, assignees, and CPC codes.
 
 ---
 

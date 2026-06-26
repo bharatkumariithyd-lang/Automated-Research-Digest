@@ -29,6 +29,13 @@ Thumbs.db
 *.docx
 *.pdf
 
+# ── Real (private) taxonomy — keep actual search config OFF the repo ──
+# Only the *.example.yaml templates are committed (generic placeholders).
+# Copy them to these names and put your real topics / assignees / CPC
+# codes there locally — treated like .env, never pushed.
+taxonomy.yaml
+patent_taxonomy.yaml
+
 # ── NOTE on deduplication state ───────────────────────────
 # seen_dois.txt and seen_patents.txt are INTENTIONALLY NOT ignored.
 # They are tracked so the dedup history is preserved and so the
