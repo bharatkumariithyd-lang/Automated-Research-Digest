@@ -51,6 +51,19 @@ PATENT_TAXONOMY_FILE = "patent_taxonomy.yaml"
 SEEN_DOIS_FILE       = "seen_dois.txt"    # Tracks papers already sent
 SEEN_PATENTS_FILE    = "seen_patents.txt"  # Tracks patents already sent
 
+# OpenAlex field IDs — map the human-readable field names used in taxonomy.yaml
+# (fields_of_study) to OpenAlex's numeric field identifiers.
+# Full list: https://api.openalex.org/fields
+OPENALEX_FIELD_IDS = {
+    "Materials Science":            "25",
+    "Engineering":                  "22",
+    "Chemistry":                    "16",
+    "Chemical Engineering":         "15",
+    "Physics and Astronomy":        "31",
+    "Environmental Science":        "23",
+    "Earth and Planetary Sciences": "19",
+}
+
 
 # ═══════════════════════════════════════════════════════════
 # STEP 1 — Load taxonomy
@@ -96,7 +109,8 @@ def get_all_keywords(taxonomy: dict) -> list[str]:
 # STEP 2 — Search APIs
 # ═══════════════════════════════════════════════════════════
 
-def search_semantic_scholar(query: str, days_back: int, max_results: int) -> list[dict]:
+def search_semantic_scholar(query: str, days_back: int, max_results: int,
+                            fields_of_study: list[str] = None) -> list[dict]:
     """
     Search Semantic Scholar API for papers matching the query.
     Returns a list of paper dicts with title, abstract, authors, year, doi, url.
@@ -115,6 +129,9 @@ def search_semantic_scholar(query: str, days_back: int, max_results: int) -> lis
         "publicationDateOrYear": f"{start_date}:{end_date}",
         "limit": min(max_results, 100),
     }
+    # Restrict to chosen academic fields (drops biology/medicine/etc.)
+    if fields_of_study:
+        params["fieldsOfStudy"] = ",".join(fields_of_study)
     
     # Retry up to 3 times on rate limit errors
     max_retries = 3
@@ -249,7 +266,8 @@ def search_arxiv(query: str, days_back: int, max_results: int) -> list[dict]:
     return []
 
 
-def search_openalex(query: str, days_back: int, max_results: int) -> list[dict]:
+def search_openalex(query: str, days_back: int, max_results: int,
+                    fields_of_study: list[str] = None) -> list[dict]:
     """
     Search OpenAlex for recent papers matching the query.
 
@@ -271,9 +289,16 @@ def search_openalex(query: str, days_back: int, max_results: int) -> list[dict]:
         "User-Agent": f"research-digest-pipeline/1.0 (mailto:{contact_email})"
     }
 
+    # Build the filter — date window plus optional academic-field restriction
+    filter_parts = [f"from_publication_date:{cutoff_date}"]
+    if fields_of_study:
+        ids = [OPENALEX_FIELD_IDS[f] for f in fields_of_study if f in OPENALEX_FIELD_IDS]
+        if ids:
+            filter_parts.append("primary_topic.field.id:" + "|".join(f"fields/{i}" for i in ids))
+
     params = {
         "search":    query,
-        "filter":    f"from_publication_date:{cutoff_date}",
+        "filter":    ",".join(filter_parts),
         "per-page":  min(max_results, 50),   # OpenAlex max per page is 200; 50 is plenty
         "select":    "id,doi,title,abstract_inverted_index,authorships,publication_year,primary_location",
         "sort":      "publication_date:desc",
@@ -1250,6 +1275,7 @@ def main():
     # Group keywords into batches to avoid too many API calls
     # Use topic group names as search queries — more efficient
     search_queries = list(taxonomy["topics"].keys())
+    fields_of_study = taxonomy.get("fields_of_study", [])   # restrict searches to these academic fields
     
     for query in search_queries:
         # Use group name + first keyword as search term
@@ -1257,7 +1283,7 @@ def main():
         search_term = group_keywords[0] if group_keywords else query
         
         if taxonomy["sources"].get("semantic_scholar", True):
-            papers = search_semantic_scholar(search_term, days_back, max_res)
+            papers = search_semantic_scholar(search_term, days_back, max_res, fields_of_study)
             all_papers.extend(papers)
             time.sleep(3)  # 3 seconds — avoids Semantic Scholar 429 rate limit
         
@@ -1267,7 +1293,7 @@ def main():
             time.sleep(5)  # 5 seconds — arXiv needs more breathing room
 
         if taxonomy["sources"].get("openalex", False):
-            papers = search_openalex(search_term, days_back, max_res)
+            papers = search_openalex(search_term, days_back, max_res, fields_of_study)
             all_papers.extend(papers)
             time.sleep(2)  # 2 seconds — polite pool allows 10 req/s, but be courteous
     

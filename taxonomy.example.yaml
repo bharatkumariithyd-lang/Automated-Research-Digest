@@ -90,6 +90,16 @@ sources:
   openalex: true               # Preprints — catches very latest research
 
 
+# ── Optional: restrict results to academic fields ───────────
+# Drops off-topic papers that share a keyword with your domain.
+# Applied to Semantic Scholar (fieldsOfStudy) and OpenAlex (field filter).
+# Field names map to OpenAlex field IDs in pipeline.py (OPENALEX_FIELD_IDS).
+# Omit or leave empty to disable.
+# fields_of_study:
+#   - Computer Science
+#   - Engineering
+
+
 # ── How many results to fetch per keyword group per source ───
 results_per_query: 20
 
