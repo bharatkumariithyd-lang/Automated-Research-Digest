@@ -401,7 +401,7 @@ def search_serp_patents(patent_taxonomy: dict, api_key: str) -> list[dict]:
             params = {
                 "engine":  "google_patents",
                 "q":       f'assignee:"{company}"',
-                "after":   after_date,
+                "after":   f"publication:{after_date}",   # SerpAPI needs a date-type prefix
                 "num":     max_res,
                 "api_key": api_key,
             }
@@ -429,14 +429,15 @@ def search_serp_patents(patent_taxonomy: dict, api_key: str) -> list[dict]:
     log.info(f"  SerpAPI assignee total so far: {len(all_patents)} patents")
 
     # ── Query 2: Search by CPC technology codes ──────────────
-    # SerpAPI Google Patents uses 'cpc' as a separate parameter
+    # SerpAPI Google Patents has NO 'cpc' parameter — the CPC code must go
+    # inside 'q' with spaces removed (e.g. "C21C7/00"), and the date filter
+    # needs a type prefix (publication:YYYYMMDD).
     if cpc_codes:
         for code in cpc_codes:
             params = {
                 "engine":  "google_patents",
-                "q":       "",
-                "cpc":     code,
-                "after":   after_date,
+                "q":       code.replace(" ", ""),
+                "after":   f"publication:{after_date}",
                 "num":     max_res,
                 "api_key": api_key,
             }
