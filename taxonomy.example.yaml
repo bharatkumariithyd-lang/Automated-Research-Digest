@@ -122,7 +122,7 @@ email:
 llm:
   provider: "groq"              # primary — try this first
   fallback_provider: "google"   # secondary — use if primary fails
-  model: "llama-3.3-70b-versatile"
+  model: "openai/gpt-oss-120b"
   fallback_model: "gemini-2.0-flash"
   max_tokens: 500
   temperature: 0.1
