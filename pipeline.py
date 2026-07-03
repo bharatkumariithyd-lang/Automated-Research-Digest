@@ -751,7 +751,7 @@ def extract_paper_data(paper: dict, taxonomy: dict, api_key: str, llm_config: di
         topics   = topics_str,
     )
     
-    model              = llm_config.get("model", "llama-3.3-70b-versatile")
+    model              = llm_config.get("model", "openai/gpt-oss-120b")
     max_tokens         = llm_config.get("max_tokens", 500)
     provider           = llm_config.get("provider", "groq")
     fallback_provider  = llm_config.get("fallback_provider", None)
@@ -832,7 +832,7 @@ def extract_patent_data(patent: dict, api_key: str, llm_config: dict) -> dict:
         abstract   = patent["abstract"][:2000],
     )
 
-    model             = llm_config.get("model", "llama-3.3-70b-versatile")
+    model             = llm_config.get("model", "openai/gpt-oss-120b")
     max_tokens        = llm_config.get("max_tokens", 400)
     provider          = llm_config.get("provider", "groq")
     fallback_provider = llm_config.get("fallback_provider", None)
