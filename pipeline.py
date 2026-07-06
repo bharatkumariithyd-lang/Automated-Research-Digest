@@ -26,6 +26,7 @@ import smtplib
 import logging
 import requests
 import yaml
+from collections import deque
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from email.mime.multipart import MIMEMultipart
@@ -648,6 +649,72 @@ importance_rating must be an integer 1-5 where:
 1 = marginally relevant, 5 = highly significant finding"""
 
 
+# ═══════════════════════════════════════════════════════════
+# LLM rate-limit pacing — keep Groq calls under the free-tier
+# tokens-per-minute (TPM) cap so every paper gets a real summary.
+# ═══════════════════════════════════════════════════════════
+GROQ_FREE_TPM = 8000   # free-tier tokens/minute for openai/gpt-oss-120b
+TPM_SAFETY    = 0.85   # use 85% of the cap, leaving headroom for estimate error
+
+
+class GroqTPMLimiter:
+    """
+    Sliding-window limiter for Groq's free-tier tokens-per-minute (TPM) cap.
+
+    Papers are summarised in a burst; a busy week bursts past 8,000 tokens/min,
+    Groq returns 429, and those papers fall back to 'LLM unavailable'. This
+    limiter records the ACTUAL tokens each call used and, before every new call,
+    waits until the trailing 60-second window has room. It trades runtime for
+    reliability — the digest may take longer, but every paper gets a real
+    summary on the free tier.
+    """
+    def __init__(self, tokens_per_minute: int, safety: float = TPM_SAFETY):
+        self.budget  = int(tokens_per_minute * safety)  # headroom below the hard cap
+        self.window  = 60.0
+        self.history = deque()  # (timestamp, tokens_used)
+
+    def _prune(self, now: float):
+        while self.history and now - self.history[0][0] > self.window:
+            self.history.popleft()
+
+    def wait_for_budget(self, estimated_tokens: int):
+        """Block until the last 60s of usage leaves room for this call."""
+        while True:
+            now = time.time()
+            self._prune(now)
+            used = sum(tok for _, tok in self.history)
+            # Room available, or window empty (can't pace below a single call).
+            if not self.history or used + estimated_tokens <= self.budget:
+                return
+            sleep_for = (self.history[0][0] + self.window) - now + 0.5
+            if sleep_for <= 0:
+                return
+            log.info(f"  TPM pacing — {used} tokens used in last 60s; "
+                     f"waiting {sleep_for:.0f}s to stay under {self.budget}/min")
+            time.sleep(sleep_for)
+
+    def record(self, tokens_used: int):
+        self.history.append((time.time(), int(tokens_used)))
+
+
+# One shared limiter governs all Groq calls in a run.
+_groq_limiter = GroqTPMLimiter(GROQ_FREE_TPM)
+
+
+def _retry_after_seconds(response, attempt: int, default: float = 15.0) -> float:
+    """
+    How long to wait after a 429. Prefer the server's Retry-After header;
+    otherwise back off progressively (15s, 30s, 45s, ... capped at 60s).
+    """
+    header = response.headers.get("Retry-After") or response.headers.get("retry-after")
+    if header:
+        try:
+            return float(header) + 1.0
+        except ValueError:
+            pass
+    return min(60.0, default * (attempt + 1))
+
+
 def call_llm_api(prompt: str, api_key: str, model: str, max_tokens: int,
                  provider: str = "groq", fallback_provider: str = None,
                  fallback_api_key: str = None, fallback_model: str = None) -> str:
@@ -674,12 +741,19 @@ def call_llm_api(prompt: str, api_key: str, model: str, max_tokens: int,
             continue
 
         log.info(f"  LLM using {current_provider.upper()} ({current_model})")
-        max_retries = 2
+        # Extra attempts give rate-limit backoffs room to recover before we
+        # give up on this provider and fall through to the next one.
+        max_retries = 5
 
         for attempt in range(max_retries):
             try:
                 if current_provider == "groq":
                     # ── Groq API (OpenAI-compatible) ──────────────
+                    # Pace ourselves under the free-tier tokens/minute cap BEFORE
+                    # sending — this is what stops the papers burst from tripping
+                    # 429s and falling back to 'LLM unavailable'.
+                    _groq_limiter.wait_for_budget(len(prompt) // 4 + max_tokens)
+
                     url     = "https://api.groq.com/openai/v1/chat/completions"
                     headers = {
                         "Authorization": f"Bearer {current_key}",
@@ -696,8 +770,22 @@ def call_llm_api(prompt: str, api_key: str, model: str, max_tokens: int,
                         "response_format": {"type": "json_object"},
                     }
                     response = requests.post(url, headers=headers, json=payload, timeout=60)
+
+                    # Rate limited — wait the server-advised time and retry the
+                    # SAME provider instead of dropping to the fallback.
+                    if response.status_code == 429:
+                        wait = _retry_after_seconds(response, attempt)
+                        log.warning(f"  Groq rate limit (429) — waiting {wait:.0f}s then retrying {attempt+1}/{max_retries}")
+                        time.sleep(wait)
+                        continue
+
                     response.raise_for_status()
-                    return response.json()["choices"][0]["message"]["content"].strip()
+                    data = response.json()
+                    # Record the ACTUAL tokens used so the limiter's 60s window
+                    # stays accurate for the next call.
+                    used = data.get("usage", {}).get("total_tokens", len(prompt) // 4 + max_tokens)
+                    _groq_limiter.record(used)
+                    return data["choices"][0]["message"]["content"].strip()
 
                 else:
                     # ── Google AI Studio (Gemma / Gemini) ─────────
@@ -713,6 +801,13 @@ def call_llm_api(prompt: str, api_key: str, model: str, max_tokens: int,
                     response = requests.post(url, headers=headers,
                                              params={"key": current_key},
                                              json=payload, timeout=60)
+
+                    if response.status_code == 429:
+                        wait = _retry_after_seconds(response, attempt)
+                        log.warning(f"  Google rate limit (429) — waiting {wait:.0f}s then retrying {attempt+1}/{max_retries}")
+                        time.sleep(wait)
+                        continue
+
                     response.raise_for_status()
                     return response.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
 
