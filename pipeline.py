@@ -2,12 +2,13 @@
 pipeline.py
 ===========
 Literature Mining Pipeline — Phase 1
-Searches Semantic Scholar + arXiv using taxonomy.yaml,
-extracts structured data using Gemma (Google AI Studio free API),
+Searches Semantic Scholar + arXiv + OpenAlex using taxonomy.yaml,
+extracts structured data using Groq + Gemini (Google AI Studio free API),
 and sends a formatted HTML email digest.
 
 SETUP REQUIRED (see README.md):
   - GOOGLE_AI_KEY   : Google AI Studio free API key
+  - GROQ_API_KEY    : Groq API key
   - SENDER_EMAIL    : Gmail address to send from
   - SENDER_PASSWORD : Gmail App Password (not your real password)
   - RECIPIENT_EMAILS: Comma-separated list of recipient emails
@@ -630,7 +631,9 @@ def filter_patents(patents: list[dict], patent_taxonomy: dict) -> list[dict]:
     log.info(f"Patent filter: {len(patents)} total → {len(filtered)} new")
     return filtered
 
-EXTRACTION_PROMPT = """You are a research analyst assistant. Read the paper details below and return a structured JSON summary.
+EXTRACTION_PROMPT = """You are a research analyst for a metallurgy and materials process R&D team
+(secondary steelmaking, refining reagents, and minerals / battery recycling).
+Read the paper details below and return a structured JSON summary.
 
 PAPER TITLE: {title}
 AUTHORS: {authors}
@@ -638,15 +641,15 @@ ABSTRACT: {abstract}
 
 Return ONLY a valid JSON object with exactly these fields — no extra text, no markdown backticks:
 {{
-  "plain_summary": "2-3 sentence plain English explanation of what this paper found and why it matters. Avoid jargon.",
-  "key_contribution": "The single most important new finding or method in one sentence.",
-  "methods_used": ["list", "of", "main", "methods", "or", "techniques"],
+  "plain_summary": "2-3 sentence plain English explanation of what this paper found and why it matters for industrial metallurgy. Avoid jargon.",
+  "key_contribution": "The single most important new finding, reagent, or process improvement in one sentence.",
+  "methods_used": ["list", "of", "main", "methods", "techniques", "or", "materials"],
   "relevance_note": "One sentence on why this is relevant to an R&D team working on: {topics}",
   "importance_rating": 3
 }}
 
 importance_rating must be an integer 1-5 where:
-1 = marginally relevant, 5 = highly significant finding"""
+1 = marginally relevant, 5 = highly significant finding for metallurgical process or reagent development"""
 
 
 # ═══════════════════════════════════════════════════════════
@@ -892,8 +895,10 @@ def extract_paper_data(paper: dict, taxonomy: dict, api_key: str, llm_config: di
     return paper
 
 
-PATENT_PROMPT = """You are a patent intelligence analyst for an AI and machine learning R&D team.
-Read the patent details below and return a structured JSON summary.
+PATENT_PROMPT = """You are a patent intelligence analyst for a metallurgy and materials R&D team
+covering secondary steelmaking, refining reagents (cored wire, synthetic slag, calcium
+treatment, desulphurisation/dephosphorisation), pelletizing binders, and minerals /
+battery recycling. Read the patent details below and return a structured JSON summary.
 
 PATENT TITLE: {title}
 ASSIGNEE (company that owns this): {assignee}
@@ -904,14 +909,14 @@ ABSTRACT: {abstract}
 Return ONLY a valid JSON object — no extra text, no markdown backticks:
 {{
   "plain_summary": "2-3 sentence plain English explanation of what this patent protects and how it works. No legal jargon.",
-  "technology_area": "One short phrase describing the technology e.g. transformer attention mechanism",
+  "technology_area": "One short phrase describing the technology e.g. cored-wire calcium treatment, ladle desulphurisation, bentonite pelletizing binder",
   "key_protection": "One sentence on exactly what this patent claims ownership of",
-  "competitive_concern": "One sentence on why an AI R&D team should be aware of this patent",
+  "competitive_concern": "One sentence on why a metallurgy R&D and IP team should be aware of this patent",
   "importance_rating": 3
 }}
 
 importance_rating must be an integer 1-5 where:
-1 = minor incremental patent, 5 = broad foundational claim on core AI technology"""
+1 = minor incremental patent, 5 = broad foundational claim on a core metallurgical process or reagent"""
 
 
 def extract_patent_data(patent: dict, api_key: str, llm_config: dict) -> dict:
