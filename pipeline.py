@@ -772,6 +772,13 @@ def call_llm_api(prompt: str, api_key: str, model: str, max_tokens: int,
                         # our extraction prompts already ask for a JSON object.
                         "response_format": {"type": "json_object"},
                     }
+                    # gpt-oss is a REASONING model: at default effort it spends the
+                    # whole max_tokens budget on hidden reasoning and never finishes
+                    # the JSON, which Groq rejects as 'json_validate_failed'. 'low'
+                    # keeps reasoning short so the JSON completes — and as a bonus
+                    # uses far fewer tokens, easing the free-tier TPM budget.
+                    if "gpt-oss" in current_model:
+                        payload["reasoning_effort"] = "low"
                     response = requests.post(url, headers=headers, json=payload, timeout=60)
 
                     # Rate limited — wait the server-advised time and retry the
